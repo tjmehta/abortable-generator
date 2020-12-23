@@ -1,9 +1,6 @@
-import abortable, { setAbortController } from '../index'
-
 import AbortController from 'abort-controller'
 import BaseError from 'baseerr'
-
-setAbortController(AbortController)
+import abortable from '../index'
 
 describe('abortable', () => {
   it('should wrap an async generator', async () => {

@@ -1,3 +1,4 @@
+import AbortController from 'abort-controller'
 import BaseError from 'baseerr'
 
 class AbortError extends BaseError<{}> {
@@ -14,14 +15,6 @@ export type AbortableAsyncGeneratorFunction<T, R, N> = (
   raceAbort: RaceAbort<T>,
 ) => AsyncGenerator<T, R, N>
 
-let AC = typeof AbortController !== 'undefined' ? AbortController : undefined
-function getAbortController(): typeof AbortController | void {
-  return AC
-}
-export function setAbortController(ac: typeof AbortController) {
-  AC = ac
-}
-
 export default function abortable<T, R = any, N = undefined>(
   createGen: AbortableAsyncGeneratorFunction<T, R, N>,
 ) {
@@ -34,8 +27,6 @@ export default function abortable<T, R = any, N = undefined>(
     }
 
     // create abort controller
-    const AbortController = getAbortController()
-    // @ts-ignore - allow error if null
     const controller = new AbortController()
     const signal = controller.signal
     let error: Error | null = null
