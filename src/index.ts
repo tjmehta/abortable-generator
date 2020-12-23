@@ -13,7 +13,7 @@ export type RaceAbort<T> = (
 
 export type AbortableAsyncGeneratorFunction<T, R, N> = (
   raceAbort: RaceAbort<T>,
-) => AsyncGenerator<T, R, N> & { done: boolean }
+) => AsyncGenerator<T, R, N>
 
 export default function abortable<T, R = any, N = undefined>(
   createGen: AbortableAsyncGeneratorFunction<T, R, N>,
