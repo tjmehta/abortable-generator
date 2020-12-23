@@ -9,7 +9,7 @@ class AbortError extends BaseError<{}> {
 
 export type AbortableAsyncGeneratorFunction<T, R, N> = (
   raceAbort: <T>(
-    task: ((signal: AbortSignal) => Promise<T>) | Promise<T>,
+    task?: ((signal: AbortSignal) => Promise<T>) | Promise<T>,
   ) => Promise<T>,
 ) => AsyncGenerator<T, R, N>
 
@@ -19,7 +19,7 @@ export default function abortable<T, R = any, N = undefined>(
   return function (
     raceAbortOrSignal?:
       | (<T>(
-          task: ((signal: AbortSignal) => Promise<T>) | Promise<T>,
+          task?: ((signal: AbortSignal) => Promise<T>) | Promise<T>,
         ) => Promise<T>)
       | AbortSignal,
   ) {
