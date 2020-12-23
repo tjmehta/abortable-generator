@@ -314,6 +314,94 @@ describe('abortable', () => {
       ]
     `)
   })
+
+  describe('done', () => {
+    it('should set done=true if generator finishes', async () => {
+      const createGen = abortable(async function* () {
+        yield 10
+      })
+      const gen = createGen()
+      for await (let item of gen) {
+      }
+      expect(gen.done).toBe(true)
+    })
+
+    it('should set done=true if generator finishes due to error', async () => {
+      const createGen = abortable(async function* () {
+        yield Promise.reject(new Error('boom'))
+      })
+      const gen = createGen()
+      try {
+        await gen.next()
+      } catch (err) {
+        //
+      } finally {
+        expect(gen.done).toBe(true)
+      }
+    })
+
+    it('should set done=true if generator finishes due to return', async () => {
+      const createGen = abortable(async function* () {
+        yield 1
+        yield 2
+        yield 3
+      })
+      const gen = createGen()
+      try {
+        await gen.next()
+        await gen.return()
+      } finally {
+        expect(gen.done).toBe(true)
+      }
+    })
+
+    it('should set done=true if generator finishes due to throw', async () => {
+      const createGen = abortable(async function* () {
+        yield 1
+        yield 2
+        yield 3
+      })
+      const gen = createGen()
+      try {
+        await gen.next()
+        await gen.throw(new Error('boom'))
+      } catch (err) {
+        //
+      } finally {
+        expect(gen.done).toBe(true)
+      }
+    })
+
+    it('should set done=true if generator finishes due to return after init', async () => {
+      const createGen = abortable(async function* () {
+        yield 1
+        yield 2
+        yield 3
+      })
+      const gen = createGen()
+      try {
+        await gen.return()
+      } finally {
+        expect(gen.done).toBe(true)
+      }
+    })
+
+    it('should set done=true if generator finishes due to throw after init', async () => {
+      const createGen = abortable(async function* () {
+        yield 1
+        yield 2
+        yield 3
+      })
+      const gen = createGen()
+      try {
+        await gen.throw(new Error('boom'))
+      } catch (err) {
+        //
+      } finally {
+        expect(gen.done).toBe(true)
+      }
+    })
+  })
 })
 
 // function identity(v) {

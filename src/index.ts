@@ -13,7 +13,7 @@ export type RaceAbort<T> = (
 
 export type AbortableAsyncGeneratorFunction<T, R, N> = (
   raceAbort: RaceAbort<T>,
-) => AsyncGenerator<T, R, N>
+) => AsyncGenerator<T, R, N> & { done: boolean }
 
 export default function abortable<T, R = any, N = undefined>(
   createGen: AbortableAsyncGeneratorFunction<T, R, N>,
@@ -48,14 +48,24 @@ export default function abortable<T, R = any, N = undefined>(
     // init genenerator and controller
     const gen = createGen(raceAbort)
     const genProxy = {
-      next() {
-        return gen.next()
+      done: false,
+      async next() {
+        try {
+          const payload = await gen.next()
+          if (payload.done) this.done = true
+          return payload
+        } catch (err) {
+          this.done = true
+          throw err
+        }
       },
       return(val: R) {
+        this.done = true
         controller.abort()
         return gen.return(val)
       },
       throw(err: any) {
+        this.done = true
         error = error || err
         controller.abort()
         return gen.throw(err)
