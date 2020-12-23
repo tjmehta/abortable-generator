@@ -1,6 +1,6 @@
 {
   "name": "abortable-generator",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Description",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
