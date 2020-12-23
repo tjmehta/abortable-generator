@@ -22,7 +22,7 @@ export function setAbortController(ac: typeof AbortController) {
   AC = ac
 }
 
-export default function abortable<T, R, N>(
+export default function abortable<T, R = any, N = undefined>(
   createGen: AbortableAsyncGeneratorFunction<T, R, N>,
 ) {
   return function (raceAbortOrSignal?: RaceAbort<T> | AbortSignal) {
