@@ -45,7 +45,7 @@ export default function abortable<T, R = any, N = undefined>(
             if (signal.aborted) return void abort()
             signal.addEventListener('abort', abort)
           }),
-          typeof task === 'function' ? task(signal) : task,
+          typeof task === 'function' ? task(signal) : task ?? Promise.resolve(),
         ])
       }
 
