@@ -7,18 +7,22 @@ class AbortError extends BaseError<{}> {
   }
 }
 
-export type RaceAbort<T> = (
-  task: ((signal: AbortSignal) => Promise<T>) | Promise<T>,
-) => Promise<T>
-
 export type AbortableAsyncGeneratorFunction<T, R, N> = (
-  raceAbort: RaceAbort<T>,
+  raceAbort: <T>(
+    task: ((signal: AbortSignal) => Promise<T>) | Promise<T>,
+  ) => Promise<T>,
 ) => AsyncGenerator<T, R, N>
 
 export default function abortable<T, R = any, N = undefined>(
   createGen: AbortableAsyncGeneratorFunction<T, R, N>,
 ) {
-  return function (raceAbortOrSignal?: RaceAbort<T> | AbortSignal) {
+  return function (
+    raceAbortOrSignal?:
+      | (<T>(
+          task: ((signal: AbortSignal) => Promise<T>) | Promise<T>,
+        ) => Promise<T>)
+      | AbortSignal,
+  ) {
     const opts = {
       raceAbort:
         typeof raceAbortOrSignal === 'function' ? raceAbortOrSignal : null,
@@ -46,7 +50,7 @@ export default function abortable<T, R = any, N = undefined>(
       }
 
     // init genenerator and controller
-    const gen = createGen(raceAbort)
+    const gen = createGen(raceAbort as any)
     const genProxy = {
       done: false,
       async next() {
@@ -59,10 +63,10 @@ export default function abortable<T, R = any, N = undefined>(
           throw err
         }
       },
-      return(val: R) {
+      return(val?: R) {
         this.done = true
         controller.abort()
-        return gen.return(val)
+        return gen.return(val as any)
       },
       throw(err: any) {
         this.done = true

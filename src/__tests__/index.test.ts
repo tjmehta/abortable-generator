@@ -341,10 +341,9 @@ describe('abortable', () => {
     })
 
     it('should set done=true if generator finishes due to return', async () => {
-      const createGen = abortable(async function* () {
+      const createGen = abortable<number>(async function* (raceAbort) {
         yield 1
-        yield 2
-        yield 3
+        yield raceAbort(Promise.resolve(10))
       })
       const gen = createGen()
       try {
