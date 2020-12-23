@@ -1,5 +1,5 @@
 {
-  "name": "node-module-template",
+  "name": "abortable-generator",
   "version": "0.0.0",
   "description": "Description",
   "main": "dist/cjs/index.js",
@@ -11,24 +11,27 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tjmehta/node-module-template.git"
+    "url": "git+https://github.com/tjmehta/abortable-generator.git"
   },
-  "keywords": [
-  ],
+  "keywords": [],
   "author": "Tejesh Mehta",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/tjmehta/node-module-template/issues"
+    "url": "https://github.com/tjmehta/abortable-generator/issues"
   },
-  "homepage": "https://github.com/tjmehta/node-module-template#readme",
+  "homepage": "https://github.com/tjmehta/abortable-generator#readme",
   "devDependencies": {
     "@babel/preset-env": "^7.10.2",
     "@babel/preset-typescript": "^7.10.1",
     "@types/jest": "^25.2.3",
+    "abort-controller": "^3.0.0",
     "babel-core": "^6.26.3",
     "babel-jest": "^26.0.1",
     "jest": "^26.0.1",
     "prettier": "^2.0.5",
     "typescript": "^3.9.3"
+  },
+  "dependencies": {
+    "baseerr": "^1.0.1"
   }
 }
