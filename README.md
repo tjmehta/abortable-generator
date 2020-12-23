@@ -10,7 +10,7 @@ npm i --save node-module-template
 
 # Usage
 
-#### Supports both ESM and CommonJS
+### Supports both ESM and CommonJS
 
 ```js
 // esm
@@ -19,7 +19,7 @@ import abortable from 'abortable-generator`
 const abortable = require('abortable-generator').default
 ```
 
-#### Problem with "stuck" AsyncGenerators
+### Problem with "stuck" AsyncGenerators
 
 There is a problem with AsyncGenerators where unsettled Promises can prevent them from finishing (and sometimes lead to memory leaks 😱)
 
@@ -43,7 +43,7 @@ for await (let item of items) {
 }
 ```
 
-#### Abort "stuck" AsyncGenerators w/ return or throw
+### Abort "stuck" AsyncGenerators w/ return or throw
 
 Here's an example of how to abort "stuck" AsyncGenerators using abortable-generator
 
@@ -78,7 +78,7 @@ for await (let item of items) {
 }
 ```
 
-#### Abort "stuck" AsyncGenerators w/ an AbortSignal
+### Abort "stuck" AsyncGenerators w/ an AbortSignal
 
 Here's an example of how to abort "stuck" AsyncGenerators using abortable-generator
 
@@ -115,7 +115,7 @@ for await (let item of items) {
 }
 ```
 
-#### Abort AsyncGenerators containing cancellable Promises
+### Abort AsyncGenerators containing cancellable Promises
 
 Here's an example of how to abort AsyncGenerators that contain cancellable Promises (supporting AbortSignal)
 
@@ -146,7 +146,7 @@ for await (let item of items) {
 }
 ```
 
-#### Advanced Example: Abort nested AsyncGenerators w/ multiple Promises and external AbortSignal
+### Advanced Example: Abort nested AsyncGenerators w/ multiple Promises and external AbortSignal
 
 Here's an example of how to abort AsyncGenerators that contain cancellable Promises (supporting AbortSignal)
 
