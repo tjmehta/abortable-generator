@@ -90,3 +90,37 @@ export default function abortable<T, R = any, N = undefined>(
     return genProxy
   }
 }
+
+export async function forAwaitEach<T>(
+  asyncIterator: AsyncIterableIterator<T>,
+  callback: (value: T, i: number, source: AsyncIterableIterator<T>) => any,
+  raceAbort: <T>(
+    task?: ((signal: AbortSignal) => Promise<T>) | Promise<T>,
+  ) => Promise<T>,
+): Promise<void> {
+  var i = 0
+  return new Promise(function (resolve, reject) {
+    async function next() {
+      const step = await asyncIterator.next()
+      if (!step.done) {
+        try {
+          await raceAbort(
+            Promise.resolve(callback(step.value, i++, asyncIterator)),
+          )
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            if (asyncIterator.return) await asyncIterator.return()
+            return
+          }
+          if (asyncIterator.throw) {
+            await asyncIterator.throw(err)
+            return
+          }
+          throw err
+        }
+        await next()
+      }
+    }
+    next().then(resolve).catch(reject)
+  })
+}
