@@ -4,7 +4,7 @@ import raceAbortSignal from 'race-abort'
 import timeout from 'timeout-then'
 
 export type TaskType<TaskResult> =
-  | ((signal: AbortSignal) => Promise<TaskResult>)
+  | ((signal: AbortSignal) => Promise<TaskResult> | TaskResult)
   | Promise<TaskResult>
 
 export type RaceType = <RaceTaskResult>(
