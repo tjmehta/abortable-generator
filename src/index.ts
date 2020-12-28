@@ -39,12 +39,23 @@ export default function abortable<T, R = any, N = undefined>(
       gen = (async function* () {})() as AsyncGenerator<never, never, never>
     } else {
       gen = createGen(async function _raceAbort(task) {
-        const throwController = new AbortController()
+        const raceAbortController = new AbortController()
+        const cleanup = () =>
+          controller.signal.removeEventListener('abort', handleAbort)
+        const handleAbort = () => {
+          cleanup()
+          raceAbortController.abort()
+        }
+        if (controller.signal.aborted) {
+          handleAbort()
+        } else {
+          controller.signal.addEventListener('abort', handleAbort)
+        }
         return Promise.race([
-          throwQueue.pull(throwController.signal),
-          raceAbort(controller.signal, task),
+          throwQueue.pull(raceAbortController.signal),
+          raceAbort(raceAbortController.signal, task),
         ]).finally(() => {
-          throwController.abort()
+          raceAbortController.abort()
         })
       })
     }
