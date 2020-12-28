@@ -34,7 +34,7 @@
     "abort-controller": "^3.0.0",
     "baseerr": "^1.0.1",
     "p-defer": "^3.0.0",
-    "promise-pull-queue": "^1.1.0",
+    "promise-pull-queue": "^1.1.1",
     "race-abort": "^1.0.2",
     "timeout-then": "^2.0.0"
   }
