@@ -43,7 +43,30 @@ for await (let item of items) {
 }
 ```
 
-### Abort "stuck" AsyncGenerators w/ return or throw
+### Abort "stuck" AsyncGenerators w/ return
+
+Here's an example of how to abort "stuck" AsyncGenerators using abortable-generator
+
+```js
+import abortable from 'abortable-generators'
+
+// wrap your AsyncGenerators with `abortable` and use `raceAbort` inside
+const getItems = abortable(async function* (raceAbort) {
+  yield raceAbort(new Promise((resolve) => {}))
+})
+const items = getItems()
+
+setTimeout(() => {
+  // some time later
+  // return will trigger an abort
+  items.return()
+}, 100)
+for await (let item of items) {
+  // generator didn't yield anything
+}
+```
+
+### Abort "stuck" AsyncGenerators w/ return with try...catch...finally
 
 Here's an example of how to abort "stuck" AsyncGenerators using abortable-generator
 
@@ -56,22 +79,51 @@ const getItems = abortable(async function* (raceAbort) {
     yield raceAbort(new Promise((resolve) => {}))
   } catch (err) {
     if (err.name === 'AbortError') {
-      // note: abort-errors should be handled and ignored!
+      // return will throw an AbortError, but it will be ignored even if rethrown here
       return
     }
     throw err
   } finally {
-    // return or throw will reach here!
+    // done
   }
 })
 const items = getItems()
 
 setTimeout(() => {
   // some time later
-  // return will trigger an abort
+  // return will throw an AbortError into the generator
   items.return()
-  // throw will too and throw an error inside the generator
-  items.throw(new Error('boom'))
+}, 100)
+for await (let item of items) {
+  // generator didn't yield anything
+}
+```
+
+### Throw an error into a "stuck" AsyncGenerators w/ throw
+
+Here's an example of how to throw an error into a "stuck" AsyncGenerators using abortable-generator
+
+```js
+import abortable from 'abortable-generators'
+
+// wrap your AsyncGenerators with `abortable` and use `raceAbort` inside
+const getItems = abortable(async function* (raceAbort) {
+  try {
+    yield raceAbort(new Promise((resolve) => {}))
+  } catch (err) {
+    // [Error: boom]
+    throw err
+  } finally {
+    // done
+  }
+})
+const items = getItems()
+
+setTimeout(() => {
+  // some time later
+  // return will throw this error into the generator
+  const err = new Error('boom')
+  items.throw(err)
 }, 100)
 for await (let item of items) {
   // generator didn't yield anything
@@ -94,16 +146,16 @@ const getItems = abortable(async function* (raceAbort) {
     yield raceAbort(new Promise((resolve) => {}))
   } catch (err) {
     if (err.name === 'AbortError') {
-      // note: abort-errors should be handled and ignored!
+      // abort will throw an AbortError, but it will be ignored even if rethrown here
       return
     }
     throw err
   } finally {
-    // will reach here!
+    // done
   }
 })
 
-// this signal can also be used to abort the generator!
+// abort-signal can also be used to abort abortable generators
 const items = getItems(signal)
 
 setTimeout(() => {
@@ -111,7 +163,7 @@ setTimeout(() => {
   controller.abort()
 }, 100)
 for await (let item of items) {
-  // generator didn't yield anything
+  //
 }
 ```
 
@@ -127,14 +179,15 @@ const getItems = abortable(async function* (raceAbort) {
     yield raceAbort((signal) => fetch('https://codeshare.io', { signal }))
   } catch (err) {
     if (err.name === 'AbortError') {
-      // note: abort-errors should be handled and ignored!
+      // cancelled fetch will throw an AbortError, but it will be ignored even if rethrown here
       return
     }
     throw err
   } finally {
-    // return or throw will reach here!
+    // done
   }
 })
+
 const items = getItems()
 
 setTimeout(() => {
@@ -142,7 +195,7 @@ setTimeout(() => {
   items.return()
 }, 100)
 for await (let item of items) {
-  // generator didn't yield anything
+  //
 }
 ```
 
@@ -162,17 +215,18 @@ const getMoreItems = abortable(async function* (raceAbort) {
     yield raceAbort((signal) => fetch('https://codeshare.io', { signal }))
   } catch (err) {
     if (err.name === 'AbortError') {
-      // note: abort-errors should be handled and ignored!
+      // aborted promises will throw an AbortError, but it will be ignored even if rethrown here
       return
     }
     throw err
   } finally {
-    // return or throw will reach here!
+    // done
   }
 })
 const getItems = abortable(async function* (raceAbort) {
+  let moreItems
   try {
-    const moreItems = getMoreItems(raceAbort)
+    moreItems = await raceAbort(signal => getMoreItems(signal))
     for await (let item in moreItems) {
       yield item
     }
@@ -180,12 +234,15 @@ const getItems = abortable(async function* (raceAbort) {
     yield raceAbort((signal) => fetch('https://codeshare.io', { signal }))
   } catch (err) {
     if (err.name === 'AbortError') {
-      // note: abort-errors should be handled and ignored!
+      // aborted promises will throw an AbortError, but it will be ignored even if rethrown here
       return
     }
+    // if you want to throw an error into a child generator you'll need to call throw manually
+    // if (err instanceof FooError) await moreItems.throw(err)
     throw err
   } finally {
-    // return or throw will reach here!
+    // done
+    await moreItems?.return()
   }
 })
 // this signal can also be used to abort the generator!
