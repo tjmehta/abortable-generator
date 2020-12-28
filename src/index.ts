@@ -1,6 +1,6 @@
 import AbortController from 'abort-controller'
 import PullQueue from 'promise-pull-queue'
-import raceAbort from 'race-abort'
+import raceAbortSignal from 'race-abort'
 import timeout from 'timeout-then'
 
 export type TaskType<TaskResult> =
@@ -38,7 +38,7 @@ export default function abortable<T, R = any, N = undefined>(
     if (controller.signal.aborted) {
       gen = (async function* () {})() as AsyncGenerator<never, never, never>
     } else {
-      gen = createGen(async function _raceAbort(task) {
+      gen = createGen(async function raceGenAbort(task) {
         const raceAbortController = new AbortController()
         const cleanup = () =>
           controller.signal.removeEventListener('abort', handleAbort)
@@ -53,7 +53,7 @@ export default function abortable<T, R = any, N = undefined>(
         }
         return Promise.race([
           throwQueue.pull(raceAbortController.signal),
-          raceAbort(raceAbortController.signal, task),
+          raceAbortSignal(raceAbortController.signal, task),
         ]).finally(() => {
           raceAbortController.abort()
         })
@@ -162,12 +162,12 @@ function wrap<T, R = any, N = undefined>(
 async function tick(signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (process?.nextTick) {
-      raceAbort(
+      raceAbortSignal(
         signal,
         () => new Promise((resolve) => process.nextTick(resolve)),
       ).then(() => resolve(), reject)
     } else {
-      raceAbort(signal, () => {
+      raceAbortSignal(signal, () => {
         const promise = timeout(0)
         const handleAbort = () => {
           cleanup()
