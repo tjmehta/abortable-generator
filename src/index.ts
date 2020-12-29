@@ -124,16 +124,29 @@ function wrap<T, R = any, N = undefined>(
       tick(tickController.signal)
         .then(() => {
           controller.abort()
-          if (process?.env?.NODE_ENV === 'development') {
+          if (
+            process?.env?.NODE_ENV === 'development' &&
+            !process?.env?.ABORTABLE_GENERATOR_DISABLE_WARNINGS
+          ) {
             return tick(tickController.signal).then(() => {
-              console.error(
-                new Error(
-                  'stuck generator detected. did you forget to use "raceAbort"?',
-                ),
+              console.warn(
+                'AbortableGeneratorWarning: stuck generator detected! did you forget to use "raceAbort" or "signal"?',
               )
-              if (process?.env?.ABORTABLE_GENERATOR_DEBUG) {
+              console.warn(
+                '  this dev warning can be disabled via "ABORTABLE_GENERATOR_DISABLE_WARNINGS"',
+              )
+              console.warn(
+                '  also this may print false positives for generators that await in finally',
+              )
+              if (!process?.env?.ABORTABLE_GENERATOR_DEBUG) {
+                console.warn(
+                  '  for additional debugging, set "ABORTABLE_GENERATOR_DEBUG" to truthy',
+                )
+              } else {
                 const interval = setInterval(() => {
-                  console.warn('generator still stuck...')
+                  console.warn(
+                    'AbortableGeneratorWarning: generator still stuck...',
+                  )
                   if (tickController.signal.aborted) clearInterval(interval)
                 }, 5000)
               }
@@ -162,9 +175,7 @@ function wrap<T, R = any, N = undefined>(
           if (process?.env?.NODE_ENV === 'development') {
             return tick(tickController.signal).then(() => {
               console.error(
-                new Error(
-                  'stuck generator detected. did you forget to use "raceAbort"?',
-                ),
+                'stuck generator detected! did you forget to use "raceAbort" or "signal"?',
               )
               if (process?.env?.ABORTABLE_GENERATOR_DEBUG) {
                 const interval = setInterval(() => {
