@@ -124,34 +124,7 @@ function wrap<T, R = any, N = undefined>(
       tick(tickController.signal)
         .then(() => {
           controller.abort()
-          if (
-            process?.env?.NODE_ENV === 'development' &&
-            !process?.env?.ABORTABLE_GENERATOR_DISABLE_WARNINGS
-          ) {
-            return tick(tickController.signal).then(() => {
-              console.warn(
-                'AbortableGeneratorWarning: stuck generator detected! did you forget to use "raceAbort" or "signal"?',
-              )
-              console.warn(
-                '  this dev warning can be disabled via "ABORTABLE_GENERATOR_DISABLE_WARNINGS"',
-              )
-              console.warn(
-                '  also this may print false positives for generators that await in finally',
-              )
-              if (!process?.env?.ABORTABLE_GENERATOR_DEBUG) {
-                console.warn(
-                  '  for additional debugging, set "ABORTABLE_GENERATOR_DEBUG" to truthy',
-                )
-              } else {
-                const interval = setInterval(() => {
-                  console.warn(
-                    'AbortableGeneratorWarning: generator still stuck...',
-                  )
-                  if (tickController.signal.aborted) clearInterval(interval)
-                }, 5000)
-              }
-            })
-          }
+          return debugLogs('return', tickController, controller)
         })
         .catch((err) => {
           // ignore and prevent unhandled rejection
@@ -172,19 +145,7 @@ function wrap<T, R = any, N = undefined>(
       tick(tickController.signal)
         .then(() => {
           throwQueue.pushError(err)
-          if (process?.env?.NODE_ENV === 'development') {
-            return tick(tickController.signal).then(() => {
-              console.error(
-                'stuck generator detected! did you forget to use "raceAbort" or "signal"?',
-              )
-              if (process?.env?.ABORTABLE_GENERATOR_DEBUG) {
-                const interval = setInterval(() => {
-                  console.warn('generator still stuck...')
-                  if (tickController.signal.aborted) clearInterval(interval)
-                }, 5000)
-              }
-            })
-          }
+          return debugLogs('throw', tickController, controller)
         })
         .catch((err) => {
           // ignore and prevent unhandled rejection
@@ -213,6 +174,35 @@ function wrap<T, R = any, N = undefined>(
   return wrapped
 }
 
+async function debugLogs(
+  method: string,
+  tickController: AbortController,
+  controller: AbortController,
+) {
+  return Promise.resolve()
+    .then(() => {
+      if (
+        process?.env?.NODE_ENV === 'development' &&
+        !process?.env?.ABORTABLE_GENERATOR_DISABLE_WARNINGS
+      ) {
+        return tick(tickController.signal).then(() => {
+          console.warn(debugMessage(method))
+          if (process?.env?.ABORTABLE_GENERATOR_DEBUG) {
+            const interval = setInterval(() => {
+              console.warn(
+                'AbortableGeneratorWarning: generator still stuck...',
+              )
+              if (tickController.signal.aborted) clearInterval(interval)
+            }, 5000)
+          }
+        })
+      }
+    })
+    .catch((err) => {
+      // ignore and prevent unhandled rejection
+    })
+}
+
 async function tick(signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (process?.nextTick) {
@@ -237,4 +227,16 @@ async function tick(signal: AbortSignal): Promise<void> {
       }).then(() => resolve(), reject)
     }
   })
+}
+
+function debugMessage(method: string) {
+  return `AbortableGeneratorWarning: stuck generator detected after ${method}! did you forget to use "raceAbort" or "signal"?
+  this dev warning can be disabled via "ABORTABLE_GENERATOR_DISABLE_WARNINGS"
+  also this may print false positives for generators that await in finally'
+  ${
+    process?.env?.ABORTABLE_GENERATOR_DEBUG
+      ? ''
+      : 'for additional debugging, set "ABORTABLE_GENERATOR_DEBUG" to truthy'
+  }
+`
 }
