@@ -886,13 +886,16 @@ describe('abortable return tests', () => {
     })
 
     it('should work like expected (generator ignores thrown errors)', async () => {
-      const createGen = abortable(async function* () {
+      const createGen = abortable(async function* (raceAbort) {
         try {
-          yield Promise.resolve(1)
-          yield Promise.resolve(2)
-          yield Promise.resolve(3)
-          await new Promise((resolve) => {})
-          yield Promise.resolve(4)
+          yield raceAbort(Promise.resolve(1))
+          yield raceAbort(Promise.resolve(2))
+          yield raceAbort(Promise.resolve(3))
+          setTimeout(() => {
+            trigger()
+          }, 10)
+          await raceAbort(new Promise((resolve) => {}))
+          yield raceAbort(Promise.resolve(4))
         } catch (err) {
           order.push(['inside-gen catch', err])
           // ignores thrown errors
@@ -900,22 +903,20 @@ describe('abortable return tests', () => {
           order.push(['inside-gen finally'])
         }
       })
+      async function trigger() {
+        try {
+          order.push(['gen.return'])
+          await gen.return()
+        } catch (err) {
+          order.push(['gen.return catch', err])
+        }
+      }
 
-      let index = 0
       const order = []
       const gen = createGen()
       try {
         for await (let result of gen) {
           order.push(['for-of result', result])
-          if (index === 2) {
-            try {
-              order.push(['gen.return'])
-              await gen.return()
-            } catch (err) {
-              order.push(['gen.return catch', err])
-            }
-          }
-          index++
         }
       } catch (err) {
         order.push(['for-of catch', err])
@@ -940,6 +941,10 @@ describe('abortable return tests', () => {
           ],
           Array [
             "gen.return",
+          ],
+          Array [
+            "inside-gen catch",
+            [AbortError: aborted],
           ],
           Array [
             "inside-gen finally",
@@ -952,39 +957,40 @@ describe('abortable return tests', () => {
     })
 
     it('should work like expected (generator ignores thrown errors and yields additional results)', async () => {
-      const createGen = abortable(async function* () {
+      const createGen = abortable(async function* (raceAbort) {
         try {
-          yield Promise.resolve(1)
-          yield Promise.resolve(2)
-          yield Promise.resolve(3)
-          await new Promise((resolve) => {})
-          yield Promise.resolve(4)
+          yield raceAbort(Promise.resolve(1))
+          yield raceAbort(Promise.resolve(2))
+          yield raceAbort(Promise.resolve(3))
+          setTimeout(() => {
+            trigger()
+          }, 10)
+          await raceAbort(new Promise((resolve) => {}))
+          yield raceAbort(Promise.resolve(4))
         } catch (err) {
           order.push(['inside-gen catch', err])
           // ignores thrown errors
-          yield Promise.resolve(5)
-          yield Promise.resolve(6)
-          yield Promise.resolve(7)
+          yield raceAbort(Promise.resolve(5))
+          yield raceAbort(Promise.resolve(6))
+          yield raceAbort(Promise.resolve(7))
         } finally {
           order.push(['inside-gen finally'])
         }
       })
+      async function trigger() {
+        try {
+          order.push(['gen.return'])
+          await gen.return()
+        } catch (err) {
+          order.push(['gen.return catch', err])
+        }
+      }
 
-      let index = 0
       const order = []
       const gen = createGen()
       try {
         for await (let result of gen) {
           order.push(['for-of result', result])
-          if (index === 2) {
-            try {
-              order.push(['gen.return'])
-              await gen.return()
-            } catch (err) {
-              order.push(['gen.return catch', err])
-            }
-          }
-          index++
         }
       } catch (err) {
         order.push(['for-of catch', err])
@@ -1009,6 +1015,10 @@ describe('abortable return tests', () => {
           ],
           Array [
             "gen.return",
+          ],
+          Array [
+            "inside-gen catch",
+            [AbortError: aborted],
           ],
           Array [
             "inside-gen finally",
@@ -1041,6 +1051,122 @@ describe('abortable return tests', () => {
       expect(gen.done).toBe(false)
       controller.abort()
       expect(gen.done).toBe(true)
+    })
+  })
+
+  describe('complex scenarios', () => {
+    it('should work like expected (generator ignores thrown errors and yields additional results)', async () => {
+      const createGen2 = abortable(async function* (raceAbort) {
+        try {
+          yield raceAbort(Promise.resolve(10))
+          yield raceAbort(Promise.resolve(20))
+          yield raceAbort(Promise.resolve(30))
+          await raceAbort(new Promise((resolve) => {}))
+          yield raceAbort(Promise.resolve(40))
+        } catch (err) {
+          order.push(['inside-gen catch', err])
+          // ignores thrown errors
+          yield raceAbort(Promise.resolve(50))
+          yield raceAbort(Promise.resolve(60))
+          yield raceAbort(Promise.resolve(70))
+        } finally {
+          order.push(['inside-gen finally'])
+        }
+      })
+      const createGen = abortable(async function* (raceAbort) {
+        try {
+          yield raceAbort(Promise.resolve(1))
+          yield raceAbort(Promise.resolve(2))
+          yield raceAbort(Promise.resolve(3))
+          setTimeout(() => {
+            trigger()
+          }, 100)
+          const gen2 = await raceAbort((signal) => createGen2(signal))
+          for await (let item of gen2) {
+            yield item
+          }
+          await raceAbort(new Promise((resolve) => {}))
+          yield raceAbort(Promise.resolve(4))
+        } catch (err) {
+          order.push(['inside-gen catch', err])
+          // ignores thrown errors
+          yield raceAbort(Promise.resolve(5))
+          yield raceAbort(Promise.resolve(6))
+          yield raceAbort(Promise.resolve(7))
+        } finally {
+          order.push(['inside-gen finally'])
+        }
+      })
+      async function trigger() {
+        try {
+          order.push(['gen.return'])
+          await gen.return()
+        } catch (err) {
+          order.push(['gen.return catch', err])
+        }
+      }
+
+      const order = []
+      const gen = createGen()
+      try {
+        for await (let result of gen) {
+          order.push(['for-of result', result])
+        }
+      } catch (err) {
+        order.push(['for-of catch', err])
+      } finally {
+        order.push(['for-of finally'])
+        expect(gen.done).toBe(true)
+      }
+
+      expect(order).toMatchInlineSnapshot(`
+        Array [
+          Array [
+            "for-of result",
+            1,
+          ],
+          Array [
+            "for-of result",
+            2,
+          ],
+          Array [
+            "for-of result",
+            3,
+          ],
+          Array [
+            "for-of result",
+            10,
+          ],
+          Array [
+            "for-of result",
+            20,
+          ],
+          Array [
+            "for-of result",
+            30,
+          ],
+          Array [
+            "gen.return",
+          ],
+          Array [
+            "inside-gen catch",
+            [AbortError: aborted],
+          ],
+          Array [
+            "inside-gen finally",
+          ],
+          Array [
+            "inside-gen catch",
+            [AbortError: aborted],
+          ],
+          Array [
+            "inside-gen finally",
+          ],
+          Array [
+            "for-of finally",
+          ],
+        ]
+      `)
     })
   })
 })

@@ -25,12 +25,12 @@ export default function abortable<T, R = any, N = undefined>(
 ) {
   return function (parentSignal?: AbortSignal) {
     const controller = new AbortController()
-    const handleAbort = () => controller.abort()
+    const abortGenerator = () => controller.abort()
     if (parentSignal) {
       if (parentSignal.aborted) {
-        handleAbort()
+        abortGenerator()
       } else {
-        parentSignal.addEventListener('abort', handleAbort)
+        parentSignal.addEventListener('abort', abortGenerator)
       }
     }
     const throwQueue = new PullQueue<never>()
@@ -39,28 +39,55 @@ export default function abortable<T, R = any, N = undefined>(
       gen = (async function* () {})() as AsyncGenerator<never, never, never>
     } else {
       gen = createGen(async function raceGenAbort(task) {
-        const raceAbortController = new AbortController()
+        const throwAbortController = new AbortController()
+        const taskAbortController = new AbortController()
         const cleanup = () =>
-          controller.signal.removeEventListener('abort', handleAbort)
-        const handleAbort = () => {
+          controller.signal.removeEventListener('abort', abortTaskAndThrow)
+        const abortTaskAndThrow = () => {
           cleanup()
-          raceAbortController.abort()
+          throwAbortController.abort()
+          taskAbortController.abort()
         }
         if (controller.signal.aborted) {
-          handleAbort()
+          abortTaskAndThrow()
         } else {
-          controller.signal.addEventListener('abort', handleAbort)
+          controller.signal.addEventListener('abort', abortTaskAndThrow)
         }
         return Promise.race([
-          throwQueue.pull(raceAbortController.signal),
-          raceAbortSignal(raceAbortController.signal, task),
-        ]).finally(() => {
-          raceAbortController.abort()
+          throwQueue.pull(throwAbortController.signal).finally(() => {
+            if (throwAbortController.signal.aborted) {
+              return // lost race
+            }
+            taskAbortController.abort()
+          }),
+          raceAbortSignal(taskAbortController.signal, task)
+            .catch((err) => {
+              // if the task errors remove abort event handlers
+              cleanup()
+              throw err
+            })
+            .finally(() => {
+              if (taskAbortController.signal.aborted) {
+                return // lost race
+              }
+              throwAbortController.abort()
+            }),
+        ]).then((val) => {
+          // @ts-ignore - if task resolves a generator or signal, keep abort event handlers
+          if (isGenLike(val)) return val
+          // @ts-ignore - hack if use returns the task signal, keep abort event handlers
+          if (val === taskAbortController.signal) return val
+          cleanup()
+          return val
         })
       })
     }
     return wrap(gen, controller, throwQueue)
   }
+}
+
+function isGenLike(val: any) {
+  return val?.next != null
 }
 
 function wrap<T, R = any, N = undefined>(
