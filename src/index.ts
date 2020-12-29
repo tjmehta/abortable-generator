@@ -124,13 +124,21 @@ function wrap<T, R = any, N = undefined>(
       tick(tickController.signal)
         .then(() => {
           controller.abort()
-          return tick(tickController.signal).then(() => {
-            nextTickThrow(
-              new Error(
-                'stuck generator detected. did you forget to use "raceAbort"?',
-              ),
-            )
-          })
+          if (process?.env?.NODE_ENV === 'development') {
+            return tick(tickController.signal).then(() => {
+              console.error(
+                new Error(
+                  'stuck generator detected. did you forget to use "raceAbort"?',
+                ),
+              )
+              if (process?.env?.ABORTABLE_GENERATOR_DEBUG) {
+                const interval = setInterval(() => {
+                  console.warn('generator still stuck...')
+                  if (tickController.signal.aborted) clearInterval(interval)
+                }, 5000)
+              }
+            })
+          }
         })
         .catch((err) => {
           // ignore and prevent unhandled rejection
@@ -151,13 +159,21 @@ function wrap<T, R = any, N = undefined>(
       tick(tickController.signal)
         .then(() => {
           throwQueue.pushError(err)
-          return tick(tickController.signal).then(() => {
-            nextTickThrow(
-              new Error(
-                'stuck generator detected. did you forget to use "raceAbort"?',
-              ),
-            )
-          })
+          if (process?.env?.NODE_ENV === 'development') {
+            return tick(tickController.signal).then(() => {
+              console.error(
+                new Error(
+                  'stuck generator detected. did you forget to use "raceAbort"?',
+                ),
+              )
+              if (process?.env?.ABORTABLE_GENERATOR_DEBUG) {
+                const interval = setInterval(() => {
+                  console.warn('generator still stuck...')
+                  if (tickController.signal.aborted) clearInterval(interval)
+                }, 5000)
+              }
+            })
+          }
         })
         .catch((err) => {
           // ignore and prevent unhandled rejection
@@ -210,16 +226,4 @@ async function tick(signal: AbortSignal): Promise<void> {
       }).then(() => resolve(), reject)
     }
   })
-}
-
-function nextTickThrow(err: any) {
-  if (process?.nextTick) {
-    process.nextTick(() => {
-      throw err
-    })
-  } else {
-    setTimeout(() => {
-      throw err
-    }, 0)
-  }
 }
