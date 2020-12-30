@@ -16,7 +16,8 @@ export type AbortOptionsType = {
   error: any
 }
 
-export type AsyncGeneratorWithDone<T, R, N> = AsyncGenerator<T, R, N> & {
+export type AsyncIterableIteratorWithDone<T> = AsyncIterableIterator<T> & {
+  return: NonNullable<AsyncIterableIterator<T>['return']>
   done: boolean
 }
 
@@ -34,7 +35,7 @@ export default function abortable<T, R = any, N = undefined>(
       gen.done = true
       // @ts-ignore
       gen.return()
-      return (gen as any) as AsyncGeneratorWithDone<T, R, N>
+      return (gen as any) as AsyncIterableIteratorWithDone<T>
     }
     const controller = new AbortController()
     const abortGenerator = () => controller.abort()
@@ -100,9 +101,9 @@ function wrap<T, R = any, N = undefined>(
   source: AsyncGenerator<T, R, N>,
   controller: AbortController,
   throwQueue: PullQueue<never>,
-): AsyncGeneratorWithDone<T, R, N> {
+): AsyncIterableIteratorWithDone<T> {
   // wrap iterator
-  const wrapped = {
+  const wrapped: AsyncIterableIteratorWithDone<T> = {
     done: false,
     async next() {
       let payload
