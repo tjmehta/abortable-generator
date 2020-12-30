@@ -24,15 +24,17 @@ export default function abortable<T, R = any, N = undefined>(
   createGen: AbortableAsyncGeneratorFunction<T, R, N>,
 ) {
   return function (parentSignal?: AbortSignal) {
+    if (parentSignal?.aborted) {
+      let gen = (async function* () {})()
+      // @ts-ignore
+      gen.done = true
+      // @ts-ignore
+      gen.return()
+      return (gen as any) as ReturnType<typeof wrap>
+    }
     const controller = new AbortController()
     const abortGenerator = () => controller.abort()
-    if (parentSignal) {
-      if (parentSignal.aborted) {
-        abortGenerator()
-      } else {
-        parentSignal.addEventListener('abort', abortGenerator)
-      }
-    }
+    parentSignal?.addEventListener('abort', abortGenerator)
     const throwQueue = new PullQueue<never>()
     let gen
     if (controller.signal.aborted) {
