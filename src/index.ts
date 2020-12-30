@@ -16,6 +16,10 @@ export type AbortOptionsType = {
   error: any
 }
 
+export type AsyncGeneratorWithDone<T, R, N> = AsyncGenerator<T, R, N> & {
+  done: boolean
+}
+
 export type AbortableAsyncGeneratorFunction<T, R, N> = (
   race: RaceType,
 ) => AsyncGenerator<T, R, N>
@@ -30,7 +34,7 @@ export default function abortable<T, R = any, N = undefined>(
       gen.done = true
       // @ts-ignore
       gen.return()
-      return (gen as any) as ReturnType<typeof wrap>
+      return (gen as any) as AsyncGeneratorWithDone<T, R, N>
     }
     const controller = new AbortController()
     const abortGenerator = () => controller.abort()
@@ -84,7 +88,7 @@ export default function abortable<T, R = any, N = undefined>(
         })
       })
     }
-    return wrap(gen, controller, throwQueue)
+    return wrap<T, R, N>(gen, controller, throwQueue)
   }
 }
 
@@ -96,7 +100,7 @@ function wrap<T, R = any, N = undefined>(
   source: AsyncGenerator<T, R, N>,
   controller: AbortController,
   throwQueue: PullQueue<never>,
-) {
+): AsyncGeneratorWithDone<T, R, N> {
   // wrap iterator
   const wrapped = {
     done: false,
