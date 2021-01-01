@@ -1082,13 +1082,13 @@ describe('abortable return tests', () => {
           await raceAbort(new Promise((resolve) => {}))
           yield raceAbort(Promise.resolve(40))
         } catch (err) {
-          order.push(['inside-gen catch', err])
+          order.push(['inside-gen2 catch', err])
           // ignores thrown errors
           yield raceAbort(Promise.resolve(50))
           yield raceAbort(Promise.resolve(60))
           yield raceAbort(Promise.resolve(70))
         } finally {
-          order.push(['inside-gen finally'])
+          order.push(['inside-gen2 finally'])
         }
       })
       const createGen = abortable(async function* (raceAbort) {
@@ -1103,6 +1103,7 @@ describe('abortable return tests', () => {
           for await (let item of gen2) {
             yield item
           }
+          order.push(['gen for-of complete'])
           await raceAbort(new Promise((resolve) => {}))
           yield raceAbort(Promise.resolve(4))
         } catch (err) {
@@ -1167,14 +1168,17 @@ describe('abortable return tests', () => {
             "gen.return",
           ],
           Array [
-            "inside-gen catch",
+            "inside-gen2 catch",
             AbortError {
               "message": "aborted",
               "name": "AbortError",
             },
           ],
           Array [
-            "inside-gen finally",
+            "inside-gen2 finally",
+          ],
+          Array [
+            "gen for-of complete",
           ],
           Array [
             "inside-gen catch",

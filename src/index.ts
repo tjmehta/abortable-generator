@@ -1,7 +1,8 @@
+import raceAbortSignal, { AbortError } from 'race-abort'
+
 // import AbortController from 'abort-controller'
 import { FastAbortController as AbortController } from './FastAbortController'
 import PullQueue from 'promise-pull-queue'
-import raceAbortSignal from 'race-abort'
 import timeout from 'timeout-then'
 
 export type TaskType<TaskResult> =
@@ -52,6 +53,8 @@ export default function abortable<T, R = any, N = undefined>(
       gen = createGen(async function raceGenAbort(task) {
         const throwAbortController = new AbortController()
         const taskAbortController = new AbortController()
+        let isGenLikeOrSignal = false
+        let throwWon = false
         const cleanup = () =>
           controller.signal.removeEventListener('abort', abortTaskAndThrow)
         const abortTaskAndThrow = () => {
@@ -65,31 +68,28 @@ export default function abortable<T, R = any, N = undefined>(
           controller.signal.addEventListener('abort', abortTaskAndThrow)
         }
         return Promise.race([
-          throwQueue.pull(throwAbortController.signal).finally(() => {
-            if (throwAbortController.signal.aborted) {
-              return // lost race
-            }
-            taskAbortController.abort()
+          throwQueue.pull(throwAbortController.signal).catch((err) => {
+            if (isGenLikeOrSignal) return new Promise<never>((resolve) => {})
+            throwWon = true
+            throw err
           }),
-          raceAbortSignal(taskAbortController.signal, task)
-            .catch((err) => {
-              // if the task errors remove abort event handlers
-              cleanup()
-              throw err
-            })
-            .finally(() => {
-              if (taskAbortController.signal.aborted) {
-                return // lost race
-              }
-              throwAbortController.abort()
-            }),
-        ]).then((val) => {
-          // @ts-ignore - if task resolves a generator or signal, keep abort event handlers
-          if (isGenLike(val)) return val
-          // @ts-ignore - hack if use returns the task signal, keep abort event handlers
-          if (val === taskAbortController.signal) return val
-          cleanup()
-          return val
+          raceAbortSignal(taskAbortController.signal, task).then((val) => {
+            if (throwWon) return new Promise<never>((resolve) => {})
+            // @ts-ignore - if task resolves a generator or signal, keep abort event handlers
+            // @ts-ignore - hack if use returns the task signal, keep abort event handlers
+            if (isGenLike(val) || val === taskAbortController.signal) {
+              isGenLikeOrSignal = true
+            }
+            return val
+          }),
+        ]).finally(() => {
+          if (!throwWon) {
+            throwAbortController.abort()
+          }
+          if (!isGenLikeOrSignal) {
+            cleanup()
+            taskAbortController.abort()
+          }
         })
       })
     }
@@ -113,6 +113,7 @@ function wrap<T, R = any, N = undefined>(
       let payload
       try {
         payload = await source.next()
+        if (this.done) throw new AbortError()
         return payload
       } catch (err) {
         this.done = true
@@ -132,17 +133,12 @@ function wrap<T, R = any, N = undefined>(
       if (this.done) return source.return(val)
       this.done = true
       const tickController = new AbortController()
-      tick(tickController.signal)
-        .then(() => {
-          controller.abort()
-          return debugLogs('return', tickController, controller)
-        })
-        .catch((err) => {
-          // ignore and prevent unhandled rejection
-        })
       try {
         // @ts-ignore
-        const result = await source.return(val)
+        const returnPromise = source.return(val)
+        debugLogs('return', tickController, controller)
+        controller.abort()
+        const result = await returnPromise
         return result
       } finally {
         tickController.abort()
@@ -153,16 +149,11 @@ function wrap<T, R = any, N = undefined>(
         return source.throw(err)
       }
       const tickController = new AbortController()
-      tick(tickController.signal)
-        .then(() => {
-          throwQueue.pushError(err)
-          return debugLogs('throw', tickController, controller)
-        })
-        .catch((err) => {
-          // ignore and prevent unhandled rejection
-        })
       try {
-        const result = await source.throw(err)
+        const throwPromise = source.throw(err)
+        debugLogs('throw', tickController, controller)
+        throwQueue.pushError(err)
+        const result = await throwPromise
         return result
       } finally {
         tickController.abort()

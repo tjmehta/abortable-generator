@@ -31,6 +31,8 @@ export class FastAbortSignal implements AbortSignal {
     this.ee.removeListener(type, listener)
   }
   dispatchEvent(event: Event): boolean {
+    // @ts-ignore
+    this.aborted = true
     this.ee.emit(event.type)
     return true
   }
