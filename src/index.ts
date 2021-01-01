@@ -1,4 +1,5 @@
-import AbortController from 'abort-controller'
+// import AbortController from 'abort-controller'
+import { FastAbortController as AbortController } from './FastAbortController'
 import PullQueue from 'promise-pull-queue'
 import raceAbortSignal from 'race-abort'
 import timeout from 'timeout-then'
@@ -38,7 +39,10 @@ export default function abortable<T, R = any, N = undefined>(
       return (gen as any) as AsyncIterableIteratorWithDone<T>
     }
     const controller = new AbortController()
-    const abortGenerator = () => controller.abort()
+    const abortGenerator = () => {
+      parentSignal?.removeEventListener('abort', abortGenerator)
+      controller.abort()
+    }
     parentSignal?.addEventListener('abort', abortGenerator)
     const throwQueue = new PullQueue<never>()
     let gen
@@ -175,8 +179,8 @@ function wrap<T, R = any, N = undefined>(
     cleanup()
     wrapped.return().catch((err) => {})
   }
-  if (controller.signal.aborted) handleAbort()
   controller.signal.addEventListener('abort', handleAbort)
+  if (controller.signal.aborted) handleAbort()
 
   return wrapped
 }
