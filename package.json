@@ -35,7 +35,7 @@
     "baseerr": "^1.0.1",
     "eventemitter3": "^4.0.7",
     "p-defer": "^3.0.0",
-    "promise-pull-queue": "^1.1.8",
+    "promise-pull-queue": "^1.1.9",
     "race-abort": "^2.0.0",
     "timeout-then": "^2.0.0"
   }
