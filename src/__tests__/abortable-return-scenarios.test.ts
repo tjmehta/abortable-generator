@@ -655,7 +655,10 @@ describe('abortable return tests', () => {
           ],
           Array [
             "inside-gen catch",
-            [AbortError: aborted],
+            AbortError {
+              "message": "aborted",
+              "name": "AbortError",
+            },
           ],
           Array [
             "inside-gen finally",
@@ -726,7 +729,10 @@ describe('abortable return tests', () => {
           ],
           Array [
             "inside-gen catch",
-            [AbortError: aborted],
+            AbortError {
+              "message": "aborted",
+              "name": "AbortError",
+            },
           ],
           Array [
             "inside-gen finally",
@@ -800,7 +806,10 @@ describe('abortable return tests', () => {
           ],
           Array [
             "inside-gen catch",
-            [AbortError: aborted],
+            AbortError {
+              "message": "aborted",
+              "name": "AbortError",
+            },
           ],
           Array [
             "inside-gen finally",
@@ -873,7 +882,10 @@ describe('abortable return tests', () => {
           ],
           Array [
             "inside-gen catch",
-            [AbortError: aborted],
+            AbortError {
+              "message": "aborted",
+              "name": "AbortError",
+            },
           ],
           Array [
             "inside-gen finally",
@@ -944,7 +956,10 @@ describe('abortable return tests', () => {
           ],
           Array [
             "inside-gen catch",
-            [AbortError: aborted],
+            AbortError {
+              "message": "aborted",
+              "name": "AbortError",
+            },
           ],
           Array [
             "inside-gen finally",
@@ -1018,7 +1033,10 @@ describe('abortable return tests', () => {
           ],
           Array [
             "inside-gen catch",
-            [AbortError: aborted],
+            AbortError {
+              "message": "aborted",
+              "name": "AbortError",
+            },
           ],
           Array [
             "inside-gen finally",
@@ -1150,14 +1168,20 @@ describe('abortable return tests', () => {
           ],
           Array [
             "inside-gen catch",
-            [AbortError: aborted],
+            AbortError {
+              "message": "aborted",
+              "name": "AbortError",
+            },
           ],
           Array [
             "inside-gen finally",
           ],
           Array [
             "inside-gen catch",
-            [AbortError: aborted],
+            AbortError {
+              "message": "aborted",
+              "name": "AbortError",
+            },
           ],
           Array [
             "inside-gen finally",
