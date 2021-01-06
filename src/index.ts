@@ -31,68 +31,58 @@ export default function abortable<T, R = any, N = undefined>(
   createGen: AbortableAsyncGeneratorFunction<T, R, N>,
 ) {
   return function (parentSignal?: AbortSignal) {
-    if (parentSignal?.aborted) {
-      let gen = (async function* () {})()
-      // @ts-ignore
-      gen.done = true
-      // @ts-ignore
-      gen.return()
-      return (gen as any) as AsyncIterableIteratorWithDone<T>
-    }
     const controller = new AbortController()
+    if (parentSignal?.aborted) {
+      controller.abort()
+    }
     const abortGenerator = () => {
       parentSignal?.removeEventListener('abort', abortGenerator)
       controller.abort()
     }
     parentSignal?.addEventListener('abort', abortGenerator)
     const throwQueue = new PullQueue<never>()
-    let gen
-    if (controller.signal.aborted) {
-      gen = (async function* () {})() as AsyncGenerator<never, never, never>
-    } else {
-      gen = createGen(async function raceGenAbort(task) {
-        const throwAbortController = new AbortController()
-        const taskAbortController = new AbortController()
-        let isGenLikeOrSignal = false
-        let throwWon = false
-        const cleanup = () =>
-          controller.signal.removeEventListener('abort', abortTaskAndThrow)
-        const abortTaskAndThrow = () => {
-          cleanup()
+    const gen = createGen(async function raceGenAbort(task) {
+      const throwAbortController = new AbortController()
+      const taskAbortController = new AbortController()
+      let isGenLikeOrSignal = false
+      let throwWon = false
+      const cleanup = () =>
+        controller.signal.removeEventListener('abort', abortTaskAndThrow)
+      const abortTaskAndThrow = () => {
+        cleanup()
+        throwAbortController.abort()
+        taskAbortController.abort()
+      }
+      if (controller.signal.aborted) {
+        abortTaskAndThrow()
+      } else {
+        controller.signal.addEventListener('abort', abortTaskAndThrow)
+      }
+      return Promise.race([
+        throwQueue.pull(throwAbortController.signal).catch((err) => {
+          if (isGenLikeOrSignal) return new Promise<never>((resolve) => {})
+          throwWon = true
+          throw err
+        }),
+        raceAbortSignal(taskAbortController.signal, task).then((val) => {
+          if (throwWon) return new Promise<never>((resolve) => {})
+          // @ts-ignore - if task resolves a generator or signal, keep abort event handlers
+          // @ts-ignore - hack if use returns the task signal, keep abort event handlers
+          if (isGenLike(val) || val === taskAbortController.signal) {
+            isGenLikeOrSignal = true
+          }
+          return val
+        }),
+      ]).finally(() => {
+        if (!throwWon) {
           throwAbortController.abort()
+        }
+        if (!isGenLikeOrSignal) {
+          cleanup()
           taskAbortController.abort()
         }
-        if (controller.signal.aborted) {
-          abortTaskAndThrow()
-        } else {
-          controller.signal.addEventListener('abort', abortTaskAndThrow)
-        }
-        return Promise.race([
-          throwQueue.pull(throwAbortController.signal).catch((err) => {
-            if (isGenLikeOrSignal) return new Promise<never>((resolve) => {})
-            throwWon = true
-            throw err
-          }),
-          raceAbortSignal(taskAbortController.signal, task).then((val) => {
-            if (throwWon) return new Promise<never>((resolve) => {})
-            // @ts-ignore - if task resolves a generator or signal, keep abort event handlers
-            // @ts-ignore - hack if use returns the task signal, keep abort event handlers
-            if (isGenLike(val) || val === taskAbortController.signal) {
-              isGenLikeOrSignal = true
-            }
-            return val
-          }),
-        ]).finally(() => {
-          if (!throwWon) {
-            throwAbortController.abort()
-          }
-          if (!isGenLikeOrSignal) {
-            cleanup()
-            taskAbortController.abort()
-          }
-        })
       })
-    }
+    })
     return wrap<T, R, N>(gen, controller, throwQueue)
   }
 }
