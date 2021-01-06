@@ -32,9 +32,6 @@ export default function abortable<T, R = any, N = undefined>(
 ) {
   return function (parentSignal?: AbortSignal) {
     const controller = new AbortController()
-    if (parentSignal?.aborted) {
-      controller.abort()
-    }
     const abortGenerator = () => {
       parentSignal?.removeEventListener('abort', abortGenerator)
       controller.abort()
@@ -83,7 +80,11 @@ export default function abortable<T, R = any, N = undefined>(
         }
       })
     })
-    return wrap<T, R, N>(gen, controller, throwQueue)
+    const wrapped = wrap<T, R, N>(gen, controller, throwQueue)
+    if (parentSignal?.aborted) {
+      wrapped.return().catch((err) => {})
+    }
+    return wrapped
   }
 }
 
