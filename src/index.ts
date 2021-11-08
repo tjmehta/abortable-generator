@@ -101,13 +101,15 @@ function wrap<T, R = any, N = undefined>(
   const wrapped: AsyncIterableIteratorWithDone<T> = {
     done: false,
     async next() {
+      const self = wrapped
       let payload
       try {
         payload = await source.next()
-        if (this.done) throw new AbortError()
+        if (self.done) throw new AbortError()
         return payload
       } catch (err) {
-        this.done = true
+        self.done = true
+        // @ts-ignore
         if (err.name === 'AbortError') {
           // ignore abort errors
           return ({ done: true, value: undefined } as any) as Promise<
@@ -116,13 +118,14 @@ function wrap<T, R = any, N = undefined>(
         }
         throw err
       } finally {
-        if (payload?.done) this.done = true
+        if (payload?.done) self.done = true
       }
     },
     async return(val?: R) {
+      const self = wrapped
       // @ts-ignore
-      if (this.done) return source.return(val)
-      this.done = true
+      if (self.done) return source.return(val)
+      self.done = true
       const tickController = new AbortController()
       try {
         // @ts-ignore
@@ -136,7 +139,8 @@ function wrap<T, R = any, N = undefined>(
       }
     },
     async throw(err: any): Promise<IteratorResult<T, any>> {
-      if (this.done) {
+      const self = wrapped
+      if (self.done) {
         return source.throw(err)
       }
       const tickController = new AbortController()
@@ -151,7 +155,8 @@ function wrap<T, R = any, N = undefined>(
       }
     },
     [Symbol.asyncIterator]() {
-      return this
+      const self = wrapped
+      return self
     },
   }
 
