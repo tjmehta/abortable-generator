@@ -1,9 +1,9 @@
 import raceAbortSignal, { AbortError } from 'race-abort'
 
 // import AbortController from 'abort-controller'
-import { FastAbortController as AbortController } from './FastAbortController'
+import { FastAbortController as AbortController } from 'fast-abort-controller'
 import PullQueue from 'promise-pull-queue'
-import timeout from 'timeout-then'
+import timeout from 'abortable-timeout'
 
 export type TaskType<TaskResult> =
   | ((signal: AbortSignal) => Promise<TaskResult> | TaskResult)
@@ -19,6 +19,7 @@ export type AbortOptionsType = {
 }
 
 export type AsyncIterableIteratorWithDone<T> = AsyncIterableIterator<T> & {
+  throw: NonNullable<AsyncIterableIterator<T>['throw']>
   return: NonNullable<AsyncIterableIterator<T>['return']>
   done: boolean
 }
@@ -209,20 +210,7 @@ async function tick(signal: AbortSignal): Promise<void> {
         () => new Promise((resolve) => process.nextTick(resolve)),
       ).then(() => resolve(), reject)
     } else {
-      raceAbortSignal(signal, () => {
-        const promise = timeout(0)
-        const handleAbort = () => {
-          cleanup()
-          promise.clear()
-        }
-        const cleanup = () => signal.removeEventListener('abort', handleAbort)
-        signal.addEventListener('abort', handleAbort)
-        try {
-          return promise
-        } finally {
-          cleanup()
-        }
-      }).then(() => resolve(), reject)
+      timeout(0, signal).then(() => resolve(), reject)
     }
   })
 }

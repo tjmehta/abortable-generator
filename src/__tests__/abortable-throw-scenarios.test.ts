@@ -1,7 +1,7 @@
 import abortable from '../index'
 
 describe('abortable throw tests', () => {
-  describe('generator baseline throw tests', () => {
+  describe('BASELINE generator throw tests', () => {
     it('should work like expected (generator rethrows errors)', () => {
       const createGen = function* () {
         try {
@@ -17,7 +17,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for (let result of gen) {
@@ -85,7 +85,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for (let result of gen) {
@@ -152,7 +152,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for (let result of gen) {
@@ -225,7 +225,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for (let result of gen) {
@@ -279,7 +279,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for (let result of gen) {
@@ -318,7 +318,7 @@ describe('abortable throw tests', () => {
     })
   })
 
-  describe('async generator throw tests', () => {
+  describe('BASELINE async generator throw tests', () => {
     it('should work like expected (generator rethrows errors)', async () => {
       const createGen = async function* () {
         try {
@@ -334,7 +334,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -396,13 +396,13 @@ describe('abortable throw tests', () => {
           yield Promise.resolve(4)
         } catch (err) {
           order.push(['inside-gen catch', err])
-          // ignores thrown errors
+          throw err
         }
       }
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -473,7 +473,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -546,7 +546,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -600,7 +600,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -656,7 +656,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -720,7 +720,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -767,7 +767,7 @@ describe('abortable throw tests', () => {
     })
   })
 
-  describe('abortable async generator throw tests', () => {
+  describe('ABORTABLE async generator throw tests', () => {
     it('should work like expected (generator rethrows errors)', async () => {
       const createGen = abortable(async function* () {
         try {
@@ -783,7 +783,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -846,13 +846,13 @@ describe('abortable throw tests', () => {
           yield Promise.resolve(4)
         } catch (err) {
           order.push(['inside-gen catch', err])
-          // ignores thrown errors
+          throw err
         }
       })
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -924,7 +924,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -998,7 +998,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -1053,7 +1053,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -1110,7 +1110,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -1175,7 +1175,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -1251,7 +1251,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -1310,7 +1310,7 @@ describe('abortable throw tests', () => {
           yield raceAbort(Promise.resolve(4))
         } catch (err) {
           order.push(['inside-gen catch', err])
-          // ignores thrown errors
+          throw err
         }
       })
       async function trigger() {
@@ -1324,7 +1324,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -1408,7 +1408,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -1484,7 +1484,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -1548,13 +1548,13 @@ describe('abortable throw tests', () => {
           yield Promise.resolve(4)
         } catch (err) {
           order.push(['inside-gen catch', err])
-          // ignores thrown errors
+          throw err
         }
       })
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
@@ -1627,7 +1627,7 @@ describe('abortable throw tests', () => {
 
       let index = 0
       const err = new Error('boom')
-      const order = []
+      const order: Array<[string] | [string, Error] | [string, number]> = []
       const gen = createGen()
       try {
         for await (let result of gen) {
